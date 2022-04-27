@@ -1,0 +1,5 @@
+<launch>
+    <rosparam file="$(find yolo_ros)/config/config.yaml" command="load"/>
+<!--    <node name="demo_client" pkg="ros_yolo" type="ros_yoloV5"/>-->
+    <node name="demo" pkg="yolo_ros" type="yolo_node.py" output="screen"/>
+</launch>

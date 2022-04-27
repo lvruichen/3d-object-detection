@@ -8,3 +8,5 @@ this is a reproduction of my senior's graduation project
 - [x] yolo object detection
 - [ ] cloud identification
 - [ ] cloud clustering 
+
+Many thanks to my friend oyjy for his code.

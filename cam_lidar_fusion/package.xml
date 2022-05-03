@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>yolo_ros</name>
+  <name>cam_lidar_fusion</name>
   <version>0.0.0</version>
-  <description>The yolo_ros package</description>
+  <description>The cam_lidar_fusion package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/yolo_ros</url> -->
+  <!-- <url type="website">http://wiki.ros.org/cam_lidar_fusion</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -54,7 +54,7 @@
   <build_depend>std_msgs</build_depend>
   <build_export_depend>roscpp</build_export_depend>
   <build_export_depend>rospy</build_export_depend>
-  <build_export_depend>stdmsgs</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
   <exec_depend>std_msgs</exec_depend>

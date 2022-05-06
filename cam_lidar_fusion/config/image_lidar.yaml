@@ -1,0 +1,4 @@
+%YAML:1.0
+image_path: /home/eric/data/kitti_raw/2011_09_26_drive_0001_sync/2011_09_26/2011_09_26_drive_0001_sync/image_00/data/0000000000.png
+lidar_path: /home/eric/data/kitti_raw/2011_09_26_drive_0001_sync/2011_09_26/2011_09_26_drive_0001_sync/velodyne_points/data/0000000000.bin
+pub_xyzi: true

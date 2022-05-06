@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="cam_lidar_fusion" type="ground_filter" name="ground_filter_node" output="screen"/>
+    <node pkg="cam_lidar_fusion" type="lidar_publisher" name="lidar_publisher_node"/>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find cam_lidar_fusion)/config/rviz.rviz"/>
+</launch>

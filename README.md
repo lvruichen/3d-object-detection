@@ -26,4 +26,9 @@ change the lidar and camera topic in ```colored_pointcloud/config/calib_results.
 roslaunch colored_pointcloud colored_poincloud_node.launch
 ```
 ![](./resource/cam_lidar_fusion.png)
-Many thanks to my friend oyjy for his code.
+## Iterative lidar ground filter
+![](./resource/ground_filter.png)
+```
+roslaunch cam_lidar_fusion fusion.launch 
+```
+Many thanks to my friend Ouyang and my senior Caoming for their code.

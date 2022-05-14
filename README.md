@@ -1,5 +1,5 @@
 # 3d-object-detection
-this is a reproduction of my senior's graduation project
+this is a reproduction of my senior's graduation project. It main use yolo to detect object in an image, and cluster the lidar points which are projected to the image. Thus, we can get the 3D boundingbox of the object.
 
 ---
 ## TODO:

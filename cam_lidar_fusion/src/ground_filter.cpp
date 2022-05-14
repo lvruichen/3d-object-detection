@@ -31,7 +31,14 @@ void GroundPlaneFilter::updateParams() {
 
 void GroundPlaneFilter::callBack(const sensor_msgs::PointCloud2ConstPtr fused_cloud) {
     pcl::PointCloud<pcl::PointXYZI> in_cloud;
-    pcl::fromROSMsg(*fused_cloud, in_cloud);
+    if (fused_cloud->fields.at(3).name != "intensity") {
+        pcl::PointCloud<pcl::PointXYZ> cloud_xyz;
+        pcl::fromROSMsg(*fused_cloud, cloud_xyz);
+        pcl::copyPointCloud(cloud_xyz, in_cloud);
+    } else {
+        pcl::fromROSMsg(*fused_cloud, in_cloud);
+    }
+
     in_cloud.header.frame_id = fused_cloud->header.frame_id;
     in_cloud.header.stamp = fused_cloud->header.stamp.nsec;
 
@@ -87,7 +94,7 @@ void GroundPlaneFilter::estimatePlane() {
 void GroundPlaneFilter::paperMethod(pcl::PointCloud<pcl::PointXYZI>& in_cloud) {
     tt_.tic();
     extractInitialSeeds(in_cloud);
-    cout << "Elapsed: " << tt_.toc() << "ms" << endl;
+    // cout << "Elapsed: " << tt_.toc() << "ms" << endl;
     for (int i = 0; i < n_iter_; i++) {
         estimatePlane();
         point_ground_.clear();

@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
         "/home/eric/a_ros_ws/object_dection_ws/src/3d-object-detection/cam_lidar_fusion/config/image_lidar.yaml");
     cout << "lidar_path: " << config["lidar_path"].as<string>() << endl;
     string lidar_path = config["lidar_path"].as<string>();
-    ros::Publisher lidar_pub = nh.advertise<sensor_msgs::PointCloud2>("lidar_points", 1);
+    ros::Publisher lidar_pub = nh.advertise<sensor_msgs::PointCloud2>("/kitti/velo/pointcloud", 1);
     PointCloudT point_cloud;
     PointCloudI point_cloud_i;
     sensor_msgs::PointCloud2 velodyne_points;
@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     }
     ros::Rate loop_rate(10);
 
-    velodyne_points.header.frame_id = "lidar_link";
+    velodyne_points.header.frame_id = "velo_link";
     while (ros::ok()) {
         ros::Time now = ros::Time::now();
         velodyne_points.header.stamp = now;

@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="cam_lidar_fusion" type="image_publisher" name="image_publisher_node"/>
+    <node pkg="cam_lidar_fusion" type="image_shower" name="image_shower" output="screen"/>
+</launch>

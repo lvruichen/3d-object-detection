@@ -1,5 +1,6 @@
 #!/home/eric/miniconda3/envs/torch/bin/python
 from matplotlib import image
+from requests import head
 import rospy
 import torch
 import torch.backends.cudnn as cudnn
@@ -13,8 +14,13 @@ from utils.general import (
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
+from yolo_ros.msg import BoundingBox
+from yolo_ros.msg import BoundingBoxes
+from yolo_ros.msg import ObjectCount
+from copy import deepcopy
 
 ros_image = 0
+header = Header()
 
 class ROS2YOLO:
     def __init__(self, node_name='yolo_detection', name='yolo'):
@@ -28,9 +34,11 @@ class ROS2YOLO:
         self.stride = 32
         self.half = True if self.device == 'gpu' else False
         #for ROS
-        self.sub = rospy.Subscriber(self.image_topic, Image, self.image_callback, queue_size=1)
+        self.sub = rospy.Subscriber(self.image_topic, Image, self.image_callback, queue_size=10)
         self.pub = rospy.Publisher('yolo_result', Image, queue_size=1)
-        
+        self.box_pub = rospy.Publisher('bounding_boxes',BoundingBoxes, queue_size=10)
+        self.num_pub = rospy.Publisher('object_num',ObjectCount, queue_size=10)
+
         self.frame_id = 'camera_link'
         self.image_height = 480
         self.image_width = 640
@@ -71,6 +79,9 @@ class ROS2YOLO:
 
     def image_callback(self, image):
         global ros_image
+        global header
+        header.frame_id = image.header.frame_id
+        header.stamp = image.header.stamp
         self.image_height = image.height
         self.image_width = image.width 
         ros_image = np.frombuffer(image.data, dtype=np.uint8).reshape(image.height, image.width, -1)
@@ -106,7 +117,10 @@ class ROS2YOLO:
 
         view_img = 1
         time3 = time.time()
-
+        object_index = 0
+        b_boxes = BoundingBoxes()
+        b_boxes.header.frame_id = header.frame_id
+        b_boxes.header.stamp = header.stamp
         for i, det in enumerate(pred):  # detections per image
             p, s, im0 = path, '', im0s
             s += '%gx%g ' % img.shape[2:]  # print string
@@ -123,15 +137,37 @@ class ROS2YOLO:
                 for *xyxy, conf, cls in reversed(det):
                     if view_img:  # Add bbox to image
                         label = '%s %.2f' % (self.names[int(cls)], conf)
-                        plot_one_box(xyxy, im0, label=label, color=[0,255,0], line_thickness=3)
+                        plot_one_box(xyxy, im0, label=label, color=[0,255,0], line_thickness=1)
+                    b_box = BoundingBox()    
+                    b_box.Class = self.names[int(cls)]
+                    b_box.id = object_index
+                    b_box.probability = float(conf)
+                    b_box.xmin = int(xyxy[0])
+                    b_box.ymin = int(xyxy[1])
+                    b_box.xmax = int(xyxy[2])
+                    b_box.ymax = int(xyxy[3])
+                    b_boxes.bounding_boxes.append(b_box)
+                    object_index += 1
+        self.box_pub.publish(b_boxes)
         time4 = time.time()
-        print('detect time %.2f'%((time3-time1) * 1000), 'ms')
+        # print('detect time %.2f'%((time3-time1) * 1000), 'ms')
         out_img = im0[:, :, [2, 1, 0]]
         ros_image=out_img
-        cv2.imshow('YOLOV5', out_img)
-        a = cv2.waitKey(1)
+        # cv2.imshow('YOLOV5', out_img)
+        # a = cv2.waitKey(1)
         #### Create CompressedIamge ####
+        count_num = ObjectCount()
+        if(pred[0]==None):
+            count_num.count = 0
+        else:
+            count_num.count = pred[0].size()[0]
+        count_num.header.stamp = rospy.Time.now()
         self.publish_image(im0)
+        self.num_pub.publish(count_num)
+        
+        
+        
+
         
     def letterbox(self, img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True):
         # Resize image to a 32-pixel-multiple rectangle https://github.com/ultralytics/yolov3/issues/232
@@ -175,12 +211,13 @@ class ROS2YOLO:
         return path, img, img0, cap
     def publish_image(self, img):
         image_temp = Image()
-        header = Header(stamp=rospy.Time.now())
+        global header
         header.frame_id = self.frame_id
         image_temp.height = self.image_height
         image_temp.width = self.image_width
         image_temp.encoding = 'rgb8'
         image_temp.data = np.array(img).tostring()
-        image_temp.header=header
+        image_temp.header.stamp = header.stamp
+        image_temp.header.frame_id = header.frame_id
         self.pub.publish(image_temp)
 

@@ -4,6 +4,7 @@ project(cam_lidar_fusion)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
+set(CMAKE_BUILD_TYPE "Debug")
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
@@ -14,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   tf
   tf_conversions
+  yolo_ros
 )
 find_package(OpenCV REQUIRED)
 find_package(PCL 1.8 REQUIRED)
@@ -73,5 +75,14 @@ target_link_libraries(lidar_publisher
 add_executable(ground_filter src/ground_filter.cpp)
 target_link_libraries(ground_filter 
                       ${catkin_LIBRARIES}
-                      ${PCL_LIBRARIES})       
-       
+                      ${PCL_LIBRARIES}) 
+
+add_executable(cloud_cluster src/cloud_cluster.cpp)
+target_link_libraries(cloud_cluster 
+                      ${catkin_LIBRARIES}
+                      ${PCL_LIBRARIES}
+                      ${OpenCV_LIBRARIES})   
+add_executable(image_shower src/image_shower.cpp)
+target_link_libraries(image_shower 
+                      ${catkin_LIBRARIES}
+                      ${OpenCV_LIBRARIES})        

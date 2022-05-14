@@ -1,0 +1,15 @@
+<launch>
+    <!-- <node pkg="cam_lidar_fusion" type="lidar_publisher" name="lidar_publisher_node"/>
+    <node pkg="cam_lidar_fusion" type="image_publisher" name="image_publisher_node"/> -->
+
+    <node pkg="cam_lidar_fusion" type="ground_filter" name="ground_filter_node" output="screen">
+        <param name="topic_str" value="/kitti/velo/pointcloud"/>
+    </node> 
+
+    <include file="$(find yolo_ros)/launch/demo.launch"/>
+    
+    <arg name="config_file" default="$(find cam_lidar_fusion)/config/cloud_cluster.yaml"/>
+    <rosparam command="load" file="$(arg config_file)"/>
+    <node pkg="cam_lidar_fusion" type="cloud_cluster" name="cloud_cluster" output="screen"/> 
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find cam_lidar_fusion)/config/cluster.rviz"/>
+</launch>

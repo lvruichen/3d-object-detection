@@ -1,0 +1,12 @@
+cam_intrinsic: 
+    [721.538,    0,     609.559,
+     0,       721.538,  172.854,
+     0,           0,          1]
+velo_to_cam:
+    [ 0.00491538,   -0.999863,  -0.0157715, -0.00445048,
+      0.0137532,   0.0158378,    -0.99978,  -0.0759921,
+      0.999893,  0.00469739,   0.0138291,   -0.271865,
+      0,           0,           0,           1]
+image_topic: "/kitti/camera_color_left/image_raw"
+lidar_topic: "/point_no_ground"
+bbox_topic: "/bounding_boxes"

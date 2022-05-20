@@ -1,6 +1,6 @@
 yolov5:
-  path: /home/eric/a_ros_ws/object_dection_ws/src/3d-object-detection/yolo_ros
-  weight: /home/eric/a_ros_ws/object_dection_ws/src/3d-object-detection/yolo_ros/scripts/yolov5s.pt
+  path: /home/eric/a_ros_ws/object_detection_ws/src/3d-object-detection/yolo_ros
+  weight: /home/eric/a_ros_ws/object_detection_ws/src/3d-object-detection/yolo_ros/scripts/yolov5s.pt
   device: gpu
   # image_topic: /image_raw
   image_topic: /kitti/camera_color_left/image_raw

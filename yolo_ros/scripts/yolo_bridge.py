@@ -54,6 +54,7 @@ class ROS2YOLO:
             self.model = torch.hub.load('ultralytics/yolov5', 'custom', path_or_model=self.weight)
             self.model = self.model.cuda() if self.device != 'cpu' else self.model
         else:
+            print('debug', self.weight, self.device)
             self.model = attempt_load(self.weight, self.device)
         self.stride = int(self.model.stride.max())
         self.img_size = check_img_size(self.img_size, s=self.stride)

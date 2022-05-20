@@ -44,7 +44,7 @@ void GroundPlaneFilter::callBack(const sensor_msgs::PointCloud2ConstPtr fused_cl
 
     pcl::PointCloud<pcl::PointXYZI> in_valid_cloud;
     for (int i = 0; i < in_cloud.size(); i++) {
-        if (pcl_isfinite(in_cloud[i].x)) in_valid_cloud.push_back(in_cloud[i]);
+        if (isfinite(in_cloud[i].x)) in_valid_cloud.push_back(in_cloud[i]);
     }
     allClear();
     paperMethod(in_valid_cloud);

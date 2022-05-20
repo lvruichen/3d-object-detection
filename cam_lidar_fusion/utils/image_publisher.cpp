@@ -14,7 +14,7 @@ int main(int argc, char **argv) {
     cv::FileStorage fs_reader(config_file_name, cv::FileStorage::READ);
     std::string image_path;
     fs_reader["image_path"] >> image_path;
-    cv::Mat image = cv::imread(image_path, CV_LOAD_IMAGE_ANYCOLOR);
+    cv::Mat image = cv::imread(image_path);
     cv::namedWindow("image");
     cv::imshow("image", image);
     cv::waitKey(1000);

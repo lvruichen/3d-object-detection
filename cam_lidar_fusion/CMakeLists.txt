@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(cam_lidar_fusion)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 set(CMAKE_BUILD_TYPE "Debug")
 ## Find catkin macros and libraries
@@ -16,17 +16,17 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   tf_conversions
   yolo_ros
-)
+) 
 find_package(OpenCV REQUIRED)
-find_package(PCL 1.8 REQUIRED)
+find_package(PCL REQUIRED)
 find_package(Eigen3)
 find_package(yaml-cpp)
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
-
+MESSAGE(STATUS "OpenCV version: "${OpenCV_VERSION})
 ## Generate messages in the 'msg' folder
-# add_message_files(
+# add_message_files( 
 #   FILES
 #   Message1.msg
 #   Message2.msg
@@ -36,7 +36,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 # add_service_files(
 #   FILES
 #   Service1.srv
-#   Service2.srv
+#   Service2.srv 
 # )
 
 ## Generate actions in the 'action' folder

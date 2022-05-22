@@ -1,6 +1,6 @@
 <launch>
-    <!-- <node pkg="cam_lidar_fusion" type="lidar_publisher" name="lidar_publisher_node"/>
-    <node pkg="cam_lidar_fusion" type="image_publisher" name="image_publisher_node"/> -->
+    <node pkg="cam_lidar_fusion" type="lidar_publisher" name="lidar_publisher_node"/>
+    <node pkg="cam_lidar_fusion" type="image_publisher" name="image_publisher_node"/>
 
     <node pkg="cam_lidar_fusion" type="ground_filter" name="ground_filter_node" output="screen">
         <param name="topic_str" value="/kitti/velo/pointcloud"/>

@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "image_publisher_node");
     ros::NodeHandle nh;
     ros::Publisher pub = nh.advertise<sensor_msgs::Image>("/kitti/camera_color_left/image_raw", 1);
-    std::string config_path = "/home/eric/a_ros_ws/object_dection_ws/src/3d-object-detection/cam_lidar_fusion/config";
+    std::string config_path = "/home/eric/a_ros_ws/object_detection_ws/src/3d-object-detection/cam_lidar_fusion/config";
     std::string file_name = "image_lidar.yaml";
     std::string config_file_name = config_path + "/" + file_name;
     cv::FileStorage fs_reader(config_file_name, cv::FileStorage::READ);

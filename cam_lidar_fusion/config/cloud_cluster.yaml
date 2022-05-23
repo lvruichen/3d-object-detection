@@ -10,3 +10,6 @@ velo_to_cam:
 image_topic: "/kitti/camera_color_left/image_raw"
 lidar_topic: "/point_no_ground"
 bbox_topic: "/bounding_boxes"
+w1: 10
+w2: 5
+w3: 20

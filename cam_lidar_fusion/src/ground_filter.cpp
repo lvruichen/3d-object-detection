@@ -3,15 +3,21 @@
 
 using namespace std;
 
-GroundPlaneFilter::GroundPlaneFilter(ros::NodeHandle& nh, ros::NodeHandle& nh_local) : nh_(nh), nh_local_(nh_local) {
+GroundPlaneFilter::GroundPlaneFilter(ros::NodeHandle& nh,
+                                     ros::NodeHandle& nh_local)
+  : nh_(nh), nh_local_(nh_local)
+{
     updateParams();
     sub_ = nh_.subscribe(topic_str_, 1, &GroundPlaneFilter::callBack, this);
-    point_ground_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/point_ground", 10);
-    point_no_ground_pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/point_no_ground", 10);
+    point_ground_pub_ =
+        nh_.advertise<sensor_msgs::PointCloud2>("/point_ground", 10);
+    point_no_ground_pub_ =
+        nh_.advertise<sensor_msgs::PointCloud2>("/point_no_ground", 10);
     ground_height_pub_ = nh_.advertise<std_msgs::Float32>("ground_height", 10);
 }
 
-GroundPlaneFilter::~GroundPlaneFilter() {
+GroundPlaneFilter::~GroundPlaneFilter()
+{
     nh_local_.deleteParam("n_iter");
     nh_local_.deleteParam("n_lpr");
     nh_local_.deleteParam("thres_seeds");
@@ -19,7 +25,8 @@ GroundPlaneFilter::~GroundPlaneFilter() {
     nh_local_.deleteParam("topic_str");
 }
 
-void GroundPlaneFilter::updateParams() {
+void GroundPlaneFilter::updateParams()
+{
     nh_local_.param<int>("n_iter", n_iter_, 3);
     nh_local_.param<int>("n_lpr", n_lpr_, 100);
     nh_local_.param<double>("thres_seeds", thres_seeds_, 0.5);
@@ -29,13 +36,18 @@ void GroundPlaneFilter::updateParams() {
     assert(n_lpr_ > 0);
 }
 
-void GroundPlaneFilter::callBack(const sensor_msgs::PointCloud2ConstPtr fused_cloud) {
+void GroundPlaneFilter::callBack(
+    const sensor_msgs::PointCloud2ConstPtr fused_cloud)
+{
     pcl::PointCloud<pcl::PointXYZI> in_cloud;
-    if (fused_cloud->fields.at(3).name != "intensity") {
+    if (fused_cloud->fields.at(3).name != "intensity")
+    {
         pcl::PointCloud<pcl::PointXYZ> cloud_xyz;
         pcl::fromROSMsg(*fused_cloud, cloud_xyz);
         pcl::copyPointCloud(cloud_xyz, in_cloud);
-    } else {
+    }
+    else
+    {
         pcl::fromROSMsg(*fused_cloud, in_cloud);
     }
 
@@ -43,11 +55,13 @@ void GroundPlaneFilter::callBack(const sensor_msgs::PointCloud2ConstPtr fused_cl
     in_cloud.header.stamp = fused_cloud->header.stamp.nsec;
 
     pcl::PointCloud<pcl::PointXYZI> in_valid_cloud;
-    for (int i = 0; i < in_cloud.size(); i++) {
-        if (isfinite(in_cloud[i].x)) in_valid_cloud.push_back(in_cloud[i]);
-    }
+    // for (int i = 0; i < in_cloud.size(); i++)
+    // {
+    //     if (isfinite(in_cloud[i].x))
+    //         in_valid_cloud.push_back(in_cloud[i]);
+    // }
     allClear();
-    paperMethod(in_valid_cloud);
+    paperMethod(in_cloud);
 
     sensor_msgs::PointCloud2 ros_point_no_ground;
     pcl::toROSMsg(point_no_ground_, ros_point_no_ground);
@@ -56,32 +70,43 @@ void GroundPlaneFilter::callBack(const sensor_msgs::PointCloud2ConstPtr fused_cl
     point_no_ground_pub_.publish(ros_point_no_ground);
 }
 
-void GroundPlaneFilter::extractInitialSeeds(pcl::PointCloud<pcl::PointXYZI>& in_cloud) {
+void GroundPlaneFilter::extractInitialSeeds(
+    pcl::PointCloud<pcl::PointXYZI>& in_cloud)
+{
     sort(in_cloud.points.begin(), in_cloud.points.end(),
-         [](const pcl::PointXYZI& lhs, const pcl::PointXYZI& rhs) { return lhs.z < rhs.z; });
+         [](const pcl::PointXYZI& lhs, const pcl::PointXYZI& rhs) {
+             return lhs.z < rhs.z;
+         });
     // get mean z value of LPR
-    double LPR_height = 0; // Lowest Point Representation
-    for (int i = 0; i < n_lpr_; i++) {
+    double LPR_height = 0;  // Lowest Point Representation
+    for (int i = 0; i < n_lpr_; i++)
+    {
         LPR_height += in_cloud.points[i].z;
     }
     LPR_height /= n_lpr_;
 
-    for (int i = 0; i < in_cloud.points.size(); i++) {
-        if (isnan(in_cloud.points[i].x) || isnan(in_cloud.points[i].y || isnan(in_cloud.points[i].z))) {
+    for (int i = 0; i < in_cloud.points.size(); i++)
+    {
+        if (isnan(in_cloud.points[i].x) ||
+            isnan(in_cloud.points[i].y || isnan(in_cloud.points[i].z)))
+        {
             continue;
         }
 
-        if (in_cloud.points[i].z < LPR_height + thres_seeds_) {
+        if (in_cloud.points[i].z < LPR_height + thres_seeds_)
+        {
             point_ground_.push_back(in_cloud.points[i]);
         }
     }
 }
 
-void GroundPlaneFilter::estimatePlane() {
+void GroundPlaneFilter::estimatePlane()
+{
     Eigen::Matrix3f cov;
     Eigen::Vector4f mean;
     pcl::computeMeanAndCovarianceMatrix(point_ground_, cov, mean);
-    Eigen::JacobiSVD<Eigen::Matrix3f> svd(cov, Eigen::DecompositionOptions::ComputeFullU);
+    Eigen::JacobiSVD<Eigen::Matrix3f> svd(
+        cov, Eigen::DecompositionOptions::ComputeFullU);
     norm_vector_ = svd.matrixU().col(2);
     auto mean_point = mean.head<3>();
     d_ = -norm_vector_.transpose() * mean_point;
@@ -91,17 +116,21 @@ void GroundPlaneFilter::estimatePlane() {
     ground_height_pub_.publish(ground_height_msg);
 }
 
-void GroundPlaneFilter::paperMethod(pcl::PointCloud<pcl::PointXYZI>& in_cloud) {
+void GroundPlaneFilter::paperMethod(pcl::PointCloud<pcl::PointXYZI>& in_cloud)
+{
     tt_.tic();
     extractInitialSeeds(in_cloud);
     // cout << "Elapsed: " << tt_.toc() << "ms" << endl;
-    for (int i = 0; i < n_iter_; i++) {
+    for (int i = 0; i < n_iter_; i++)
+    {
         estimatePlane();
         point_ground_.clear();
         point_no_ground_.clear();
         Eigen::Vector3f pt_vec;
-        for (auto pt : in_cloud.points) {
-            if (isnan(pt.x) || isnan(pt.y) || isnan(pt.z)) continue;
+        for (auto pt : in_cloud.points)
+        {
+            if (isnan(pt.x) || isnan(pt.y) || isnan(pt.z))
+                continue;
             pt_vec.x() = pt.x;
             pt_vec.y() = pt.y;
             pt_vec.z() = pt.z;
@@ -111,14 +140,47 @@ void GroundPlaneFilter::paperMethod(pcl::PointCloud<pcl::PointXYZI>& in_cloud) {
                 point_ground_.points.push_back(pt);
         }
     }
+    // when the method is down, then use the plane method to filter the ground
+    backupMethod(in_cloud, d_);
 }
 
-int main(int argc, char** argv) {
+void GroundPlaneFilter::backupMethod(pcl::PointCloud<pcl::PointXYZI>& in_cloud,
+                                     double ground_height)
+{
+    if (ground_height < 2)
+        return;
+    else
+    {
+        cout << "the paper method is down, use plane fitter method" << endl;
+        point_ground_.clear();
+        point_no_ground_.clear();
+        pcl::PointIndices::Ptr inliers(new pcl::PointIndices());
+        pcl::ModelCoefficients coefficients;
+        pcl::SACSegmentation<pcl::PointXYZI> segmentation;
+        segmentation.setModelType(pcl::SACMODEL_PLANE);
+        segmentation.setMethodType(pcl::SAC_RANSAC);
+        segmentation.setMaxIterations(500);
+        segmentation.setDistanceThreshold(0.2);
+        segmentation.setInputCloud(in_cloud.makeShared());
+        segmentation.segment(*inliers, coefficients);
+
+        pcl::ExtractIndices<pcl::PointXYZI> extract;
+        extract.setInputCloud(in_cloud.makeShared());
+        extract.setIndices(inliers);
+        extract.setNegative(true);
+        extract.filter(point_no_ground_);
+    }
+}
+
+int main(int argc, char** argv)
+{
     ros::init(argc, argv, "grounf_filter_node");
     ros::NodeHandle nh("");
     ros::NodeHandle nh_local("~");
 
-    if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug)) {
+    if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME,
+                                       ros::console::levels::Debug))
+    {
         ros::console::notifyLoggerLevelsChanged();
     }
 

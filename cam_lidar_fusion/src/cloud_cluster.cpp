@@ -32,7 +32,9 @@ void CloudCluster::readParam()
     nh_local_.getParam("image_topic", image_topic);
     nh_local_.getParam("lidar_topic", lidar_topic);
     nh_local_.getParam("bbox_topic", bbox_topic);
-
+    nh_local_.getParam("w1", w1);
+    nh_local_.getParam("w2", w2);
+    nh_local_.getParam("w3", w3);
     ROS_ASSERT(cam_intrinsic_data.size() == 9);
     ROS_ASSERT(velo_to_cam_data.size() == 16);
     for (int i = 0; i < cam_intrinsic_data.size(); i++)
@@ -94,8 +96,6 @@ void CloudCluster::callback(
             (new pcl::PointCloud<pcl::PointXYZ>())->makeShared();
     }
     vector<yolo_ros::BoundingBox> box_vector = bd_boxes->bounding_boxes;
-
-    cv::Mat img_to_show;
     cv_bridge::CvImagePtr cv_ptr;
     cv_ptr = cv_bridge::toCvCopy(img_raw);
     cv::Mat src_img = cv_ptr->image;
@@ -137,11 +137,12 @@ void CloudCluster::callback(
     {
         // cout << "there are " << cloud_vector[i]->size() << " points in
         // object" << i << endl;
+        // transform the point in lidar frame
         pcl::transformPointCloud(*cloud_vector[i], *cloud_in_lidar,
                                  cam_to_velo_);
         *out_cloud = *out_cloud + *cloud_in_lidar;
         bool success_flag =
-            this->kd_cluster(cloud_in_lidar, box_vector[i].Class, obj_info);
+            this->kd_cluster(cloud_in_lidar, box_vector[i], obj_info);
         if (success_flag)
         {
             obj_vec.push_back(obj_info);
@@ -149,7 +150,7 @@ void CloudCluster::callback(
     }
     if (not obj_vec.empty())
     {
-        cout << "clustered " << obj_vec.size() << " objects" << endl;
+        cout << "totally clustered " << obj_vec.size() << " objects" << endl;
         this->drawCube(obj_vec);
     }
 
@@ -163,7 +164,8 @@ void CloudCluster::callback(
 // CloudCluster::clusterPoints(pcl::PointCloud<pcl::PointXYZ>::ConstPtr
 // cloud_in) {}
 bool CloudCluster::kd_cluster(pcl::PointCloud<pcl::PointXYZ>::Ptr in_pc,
-                              string category_, Detected_object& obj_info_)
+                              yolo_ros::BoundingBox& bbox_,
+                              Detected_object& obj_info_)
 {
     if (in_pc->points.size() < 10)
         return false;
@@ -179,11 +181,11 @@ bool CloudCluster::kd_cluster(pcl::PointCloud<pcl::PointXYZ>::Ptr in_pc,
     euclid.setInputCloud(cloud_in);
     euclid.setClusterTolerance(1);
     euclid.setMaxClusterSize(700);
-    euclid.setMinClusterSize(20);
+    euclid.setMinClusterSize(10);
     euclid.setSearchMethod(tree);
     euclid.extract(local_indices);
-    // cout << "cluster " << local_indices.size() << " objects" << endl;
-    obj_info_.category_ = category_;
+    // std::cout << "cluster " << local_indices.size() << " objects" << endl;
+    obj_info_.category_ = bbox_.Class;
     float min_x = std::numeric_limits<float>::max();
     float max_x = -std::numeric_limits<float>::max();
     float min_y = std::numeric_limits<float>::max();
@@ -192,8 +194,35 @@ bool CloudCluster::kd_cluster(pcl::PointCloud<pcl::PointXYZ>::Ptr in_pc,
     float max_z = -std::numeric_limits<float>::max();
     if (local_indices.size() == 0)
         return false;
-    for (auto pit = local_indices[0].indices.begin();
-         pit != local_indices[0].indices.end(); ++pit)
+
+    // judge the cluster by the iou
+    pcl::PointCloud<pcl::PointXYZ>::Ptr tmp_cloud_ptr(
+        new pcl::PointCloud<pcl::PointXYZ>);
+    vector<double> iou_vec;
+    // iou_vec save the iou of each cluster to compare the front and back
+    iou_vec.resize(local_indices.size());
+    for (int i = 0; i < local_indices.size(); i++)
+    {
+        tmp_cloud_ptr->clear();
+        for (auto pit = local_indices[i].indices.begin();
+             pit != local_indices[i].indices.end(); ++pit)
+        {
+            pcl::PointXYZ p;
+            p.x = in_pc->points[*pit].x;
+            p.y = in_pc->points[*pit].y;
+            p.z = in_pc->points[*pit].z;
+            tmp_cloud_ptr->push_back(p);
+        }
+        iou_vec[i] = judgeScore(tmp_cloud_ptr, bbox_, in_pc->points.size());
+        cout << "the iou_score of the " << i << "th cluster is: " << iou_vec[i]
+             << endl;
+    }
+    // select the cluster which has the most points
+    auto value_iter = max_element(iou_vec.begin(), iou_vec.end());
+    int index = distance(iou_vec.begin(), value_iter);
+
+    for (auto pit = local_indices[index].indices.begin();
+         pit != local_indices[index].indices.end(); ++pit)
     {
         pcl::PointXYZ p;
         p.x = in_pc->points[*pit].x;
@@ -236,8 +265,9 @@ bool CloudCluster::kd_cluster(pcl::PointCloud<pcl::PointXYZ>::Ptr in_pc,
     double length_ = obj_info_.max_point_.x - obj_info_.min_point_.x;
     double width_ = obj_info_.max_point_.y - obj_info_.min_point_.y;
     double height_ = obj_info_.max_point_.z - obj_info_.min_point_.z;
-    cout << "the length and width and height are: " << length_ << " " << width_
-         << " " << height_ << endl;
+    // cout << "the target's length and width and height are: " << length_ << "
+    // "
+    //      << width_ << " " << height_ << endl;
     obj_info_.bounding_box_.header = cloud_heander_;
     obj_info_.bounding_box_.pose.position.x =
         obj_info_.min_point_.x + length_ / 2;
@@ -264,6 +294,66 @@ void CloudCluster::drawCube(vector<Detected_object>& obj_vec_)
         bbox_array.boxes.push_back(obj_vec_[i].bounding_box_);
     }
     bounding_box_pub_.publish(bbox_array);
+}
+
+double CloudCluster::judgeScore(pcl::PointCloud<pcl::PointXYZ>::Ptr in_cloud_,
+                                yolo_ros::BoundingBox& bbox_,
+                                int total_cloud_num)
+{
+    double dis_ = distScore(in_cloud_);  // 归一化后的数据，0~1
+    double num_ = numSocre(in_cloud_, total_cloud_num);  // 归一化后的数据，0~1
+    double iou_ = iouScore(in_cloud_, bbox_);  //归一化后的数据，0~1
+    return w1 * dis_ + w2 * num_ + w3 * iou_;
+}
+
+double CloudCluster::distScore(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in)
+{
+    double dis_tmp = 0;
+    for (int i = 0; i < cloud_in->points.size(); i++)
+    {
+        dis_tmp += (sqrt(pow(cloud_in->points[i].x, 2) +
+                         pow(cloud_in->points[i].y, 2)) /
+                    500);
+    }
+    dis_tmp /= cloud_in->points.size();
+    // cout << "dis_" << (1 - dis_tmp) << endl;
+    return 1 - dis_tmp;
+}
+
+double CloudCluster::numSocre(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in,
+                              int total_num)
+{
+    return (double(cloud_in->points.size()) / double(total_num));
+}
+
+double CloudCluster::iouScore(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in,
+                              yolo_ros::BoundingBox& bbox_)
+{
+    double min_x = 10000;
+    double min_y = 10000;
+    double max_x = 0;
+    double max_y = 0;
+    Eigen::Vector3d tmp_point;
+    Eigen::Vector3d img_point;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in_cam(
+        new pcl::PointCloud<pcl::PointXYZ>);
+    pcl::transformPointCloud(*cloud_in, *cloud_in_cam, velo_to_cam_);
+
+    for (int i = 0; i < cloud_in_cam->points.size(); i++)
+    {
+        tmp_point << cloud_in_cam->points[i].x, cloud_in_cam->points[i].y,
+            cloud_in_cam->points[i].z;
+        tmp_point = tmp_point / tmp_point(2);
+        img_point = cam_intrinsic_ * tmp_point;
+        min_x = ((min_x > img_point(0)) ? img_point(0) : min_x);
+        min_y = ((min_y > img_point(1)) ? img_point(1) : min_y);
+        max_x = ((max_x < img_point(0)) ? img_point(0) : max_x);
+        max_y = ((min_y < img_point(1)) ? img_point(1) : max_y);
+    }
+    double Oarea = (max_x - min_x) * (max_y - min_y);
+    double Tarea = (bbox_.xmax - bbox_.xmin) * (bbox_.ymax - bbox_.ymin);
+    // cout << "iou: " << Oarea / Tarea << endl;
+    return Oarea / Tarea;
 }
 
 void callback1(const yolo_ros::ObjectCountConstPtr& objct_num)

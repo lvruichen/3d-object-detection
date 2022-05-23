@@ -22,6 +22,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/image_encodings.h>
+
 #include <Eigen/Core>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -33,11 +34,13 @@
 #include "yolo_ros/ObjectCount.h"
 using namespace std;
 
-class CloudCluster {
+class CloudCluster
+{
 public:
     CloudCluster(ros::NodeHandle& nh, ros::NodeHandle& nh_local);
     ~CloudCluster(){};
-    struct Detected_object {
+    struct Detected_object
+    {
         pcl::PointXYZ min_point_;
         pcl::PointXYZ max_point_;
         pcl::PointXYZ centroid_;
@@ -47,10 +50,20 @@ public:
 
 private:
     void readParam();
-    void callback(const sensor_msgs::ImageConstPtr& img_raw, const sensor_msgs::PointCloud2ConstPtr& cropped_cloud,
+    void callback(const sensor_msgs::ImageConstPtr& img_raw,
+                  const sensor_msgs::PointCloud2ConstPtr& cropped_cloud,
                   const yolo_ros::BoundingBoxesConstPtr& bd_boxes);
-    bool kd_cluster(pcl::PointCloud<pcl::PointXYZ>::Ptr in_pc, string category_, Detected_object& obj_info_);
+    bool kd_cluster(pcl::PointCloud<pcl::PointXYZ>::Ptr in_pc,
+                    yolo_ros::BoundingBox& bbox_, Detected_object& obj_info_);
     void drawCube(vector<Detected_object>& obj_vec_);
+    double judgeScore(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in,
+                      yolo_ros::BoundingBox& bbox_, int total_cloud_num);
+    double distScore(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in);
+    double numSocre(pcl::PointCloud<pcl::PointXYZ>::Ptr, int total_num);
+    double iouScore(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in,
+                    yolo_ros::BoundingBox& bbox_);
+
+    void computeBox(pcl::PointCloud<pcl::PointXYZ>::Ptr);
     // bool filterBboxByArea();//以后有时间再改进
     ros::NodeHandle nh_, nh_local_;
     message_filters::Subscriber<sensor_msgs::Image> image_sub_;
@@ -61,25 +74,30 @@ private:
     ros::Publisher enhanced_yolo_img_pub_;
     ros::Publisher bounding_box_pub_;
 
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::PointCloud2,
-                                                            yolo_ros::BoundingBoxes>
+    typedef message_filters::sync_policies::ApproximateTime<
+        sensor_msgs::Image, sensor_msgs::PointCloud2, yolo_ros::BoundingBoxes>
         enhanced_yolo_policy;
     typedef message_filters::Synchronizer<enhanced_yolo_policy> Sync;
     boost::shared_ptr<Sync> sync;
 
     Eigen::Matrix3d cam_intrinsic_;
-    Eigen::Matrix4d velo_to_cam_; // look in camera frame
-    Eigen::Matrix4d cam_to_velo_; // look in lidar frame
+    Eigen::Matrix4d velo_to_cam_;  // look in camera frame
+    Eigen::Matrix4d cam_to_velo_;  // look in lidar frame
     string image_topic;
     string lidar_topic;
     string bbox_topic;
     std_msgs::Header cloud_heander_;
     map<string, pair<double, double>> area_thres_;
-    int color[21][3] = {{255, 0, 0},     {255, 69, 0},    {255, 99, 71},   {255, 140, 0},   {255, 165, 0},
-                        {238, 173, 14},  {255, 193, 37},  {255, 255, 0},   {255, 236, 139}, {202, 255, 112},
-                        {0, 255, 0},     {84, 255, 159},  {127, 255, 212}, {0, 229, 238},   {152, 245, 255},
-                        {178, 223, 238}, {126, 192, 238}, {28, 134, 238},  {0, 0, 255},     {72, 118, 255},
-                        {122, 103, 238}};
+    double w1 = 10;
+    double w2 = 5;
+    double w3 = 20;
+    int color[21][3] = {{255, 0, 0},     {255, 69, 0},    {255, 99, 71},
+                        {255, 140, 0},   {255, 165, 0},   {238, 173, 14},
+                        {255, 193, 37},  {255, 255, 0},   {255, 236, 139},
+                        {202, 255, 112}, {0, 255, 0},     {84, 255, 159},
+                        {127, 255, 212}, {0, 229, 238},   {152, 245, 255},
+                        {178, 223, 238}, {126, 192, 238}, {28, 134, 238},
+                        {0, 0, 255},     {72, 118, 255},  {122, 103, 238}};
 };
 
 #endif

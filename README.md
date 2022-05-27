@@ -46,4 +46,9 @@ I just take one frame of kitti dataset for example
 ![](./resource/final.png)
 ![](./resource/demo.gif)
 
+## Test in simulation world
+I build a simple dynamic world to check my algorithm
+![](./resource/world.gif)
+the detect results are as followed, we can see that this algorithm distingguish the front view and background validly.
+![](./resource/rviz2.gif)
 Many thanks to my friend Ouyang and my senior Caoming for their code.

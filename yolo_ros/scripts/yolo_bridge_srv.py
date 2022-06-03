@@ -1,25 +1,25 @@
 #!/home/eric/miniconda3/envs/torch/bin/python
+from ast import Return
 from matplotlib import image
-from requests import head
+from requests import head, request
 import rospy
 import torch
 import torch.backends.cudnn as cudnn
 import numpy as np
 import time
 import cv2
-import message_filters
 from models.experimental import attempt_load
 from utils.general import (
     check_img_size, non_max_suppression, apply_classifier, scale_coords,
     xyxy2xywh, plot_one_box, strip_optimizer, set_logging)
 from utils.torch_utils import select_device, load_classifier, time_synchronized
 from sensor_msgs.msg import Image
-from sensor_msgs.msg import PointCloud2
 from std_msgs.msg import Header
 from yolo_ros.msg import BoundingBox
 from yolo_ros.msg import BoundingBoxes
 from yolo_ros.msg import ObjectCount
 from copy import deepcopy
+from yolo_ros.srv import yolo_srv, yolo_srvRequest, yolo_srvResponse
 
 ros_image = 0
 header = Header()
@@ -32,26 +32,24 @@ class ROS2YOLO:
         self.device = rospy.get_param('yolov5/device', 'gpu')
         self.img_size = rospy.get_param('yolov5/img_size', 640)
         self.image_topic = rospy.get_param('yolov5/image_topic', None)
-        self.lidar_topic = rospy.get_param('yolov5/lidar_topic','lidar_points')
         self.valid = False if (self.yolo5_path is None) and (self.weight is None) else True
         self.stride = 32
         self.half = True if self.device == 'gpu' else False
         #for ROS
-        # self.sub = rospy.Subscriber(self.image_topic, Image, self.image_callback, queue_size=10)
-        self.sub_img = message_filters.Subscriber(self.image_topic, Image)
-        self.sub_lidar = message_filters.Subscriber(self.lidar_topic, PointCloud2)
-        self.syn = message_filters.ApproximateTimeSynchronizer([self.sub_img, self.sub_lidar], 10, 3)
+        self.sub = rospy.Subscriber(self.image_topic, Image, self.image_callback, queue_size=10)
         self.pub = rospy.Publisher('yolo_result', Image, queue_size=1)
         self.box_pub = rospy.Publisher('bounding_boxes',BoundingBoxes, queue_size=10)
         self.num_pub = rospy.Publisher('object_num',ObjectCount, queue_size=10)
+        self.yolo_srv = rospy.Service("yolo_server",yolo_srv, self.doReq)
 
         self.frame_id = 'camera_link'
         self.image_height = 480
         self.image_width = 640
+        self.sub_flag = False
+        self.deal_falg = False
 
         if not self.load_model():
             print('error occurred while loading !')
-        self.syn.registerCallback(self.image_callback)
 
     def load_model(self):
         if not self.valid:
@@ -85,7 +83,9 @@ class ROS2YOLO:
             else:
                 print(',', end=' ')
 
-    def image_callback(self, image, lidar_points):
+    def image_callback(self, image):
+        if(self.sub_flag == False):
+            return
         global ros_image
         global header
         header.frame_id = image.header.frame_id
@@ -95,6 +95,7 @@ class ROS2YOLO:
         ros_image = np.frombuffer(image.data, dtype=np.uint8).reshape(image.height, image.width, -1)
         
         self.detect(ros_image)
+        self.deal_falg = True
     
     def detect(self, img):
         time1 = time.time()
@@ -162,7 +163,7 @@ class ROS2YOLO:
         out_img = im0[:, :, [2, 1, 0]]
         ros_image=out_img
         # cv2.imshow('YOLOV5', out_img)
-        # a = cv2.waitKey(1)
+        # a = cv2.waitKey(10)
         #### Create CompressedIamge ####
         count_num = ObjectCount()
         if(pred[0]==None):
@@ -173,9 +174,6 @@ class ROS2YOLO:
         self.publish_image(im0)
         self.num_pub.publish(count_num)
         
-        
-        
-
         
     def letterbox(self, img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True):
         # Resize image to a 32-pixel-multiple rectangle https://github.com/ultralytics/yolov3/issues/232
@@ -228,4 +226,14 @@ class ROS2YOLO:
         image_temp.header.stamp = header.stamp
         image_temp.header.frame_id = header.frame_id
         self.pub.publish(image_temp)
+    def doReq(self, req):
+        resp = yolo_srvResponse()
+        if(req.yolo_msg != "yolo_detect"):  
+            return resp
+        self.sub_flag = True
+        self.deal_falg = False
+        while(self.deal_falg == False):
+            pass
+        self.sub_flag = False
+        return resp
 

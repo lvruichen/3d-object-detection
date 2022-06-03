@@ -2,6 +2,7 @@
     <!-- 将 Urdf 文件的内容加载到参数服务器 -->
     <env name="GAZEBO_MODEL_PATH" value="$(find gazebo_plugin)/models"/>
     <env name="GAZEBO_PLUGIN_PATH" value="$(find gazebo_plugin)/lib"/>
+    <param name="robot_description" command="$(find xacro)/xacro $(find cleaningrobot_description)/urdf/diff/robot_with_sensors.urdf.xacro" />
     <!-- 启动 gazebo -->
     <!-- <arg name="world_name" default="$(find cleaningrobot_gazebo)/worlds/test_sensors_0.world" /> -->
     <!-- <arg name="world_name" default="$(find cleaningrobot_gazebo)/worlds/test_sensors.world" /> -->
@@ -17,4 +18,8 @@
         <arg name="output" value="screen"/>
         <arg name="verbose" value="false"/>
     </include>
+    <node pkg="gazebo_ros" type="spawn_model" name="model" args="-urdf -model cleanrobot -param robot_description" />
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+    <node pkg="gazebo_plugin" type="test_detection" name="test_detection_node" output="screen"/>
 </launch>

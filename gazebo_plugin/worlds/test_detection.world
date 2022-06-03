@@ -18,6 +18,9 @@
         <falloff>0</falloff>
       </spot>
     </light>
+    <model name="getBBox">
+      <plugin name="getBBox" filename="libGetBBox.so"/>
+    </model>
     <model name='ground_plane'>
       <static>1</static>
       <link name='link'>

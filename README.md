@@ -8,7 +8,7 @@ this is a reproduction of my senior's graduation project. It main use yolo to de
 - [x] yolo object detection
 - [x] cloud identification
 - [x] cloud clustering 
-- [x] the scoring method(dis num iou)
+- [x] the scoring method(distance number iou)
 - [ ] L shape fitter
 
 ## Environments:

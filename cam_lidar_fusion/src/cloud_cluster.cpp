@@ -128,7 +128,7 @@ void CloudCluster::callback(
         }
     }
     cv::imshow("image", src_img);
-    cv::waitKey(3);
+    cv::waitKey(1);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in_lidar(
         new pcl::PointCloud<pcl::PointXYZ>);
     Detected_object obj_info;

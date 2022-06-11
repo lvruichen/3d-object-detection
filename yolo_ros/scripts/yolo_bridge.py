@@ -46,8 +46,8 @@ class ROS2YOLO:
         self.num_pub = rospy.Publisher('object_num',ObjectCount, queue_size=10)
 
         self.frame_id = 'camera_link'
-        self.image_height = 480
-        self.image_width = 640
+        self.image_height = 720
+        self.image_width = 1280
 
         if not self.load_model():
             print('error occurred while loading !')

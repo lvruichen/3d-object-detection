@@ -4,4 +4,4 @@ yolov5:
   device: gpu
   image_topic: /realsense/image_raw
   # image_topic: /kitti/camera_color_left/image_raw
-  img_size: 640
+  img_size: 1280

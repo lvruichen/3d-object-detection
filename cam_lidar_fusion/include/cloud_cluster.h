@@ -22,6 +22,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/image_encodings.h>
+#include <tf/tf.h>
 
 #include <Eigen/Core>
 #include <opencv2/core/core.hpp>
@@ -29,6 +30,7 @@
 #include <opencv2/imgproc.hpp>
 #include <pcl/search/impl/search.hpp>
 
+#include "lshaped_fitting.h"
 #include "yolo_ros/BoundingBox.h"
 #include "yolo_ros/BoundingBoxes.h"
 #include "yolo_ros/ObjectCount.h"
@@ -45,6 +47,8 @@ public:
         pcl::PointXYZ max_point_;
         pcl::PointXYZ centroid_;
         string category_;
+        cv::RotatedRect rr;
+        vector<cv::Point2f> vertices;
         jsk_recognition_msgs::BoundingBox bounding_box_;
     };
 
@@ -65,6 +69,9 @@ private:
 
     void computeBox(pcl::PointCloud<pcl::PointXYZ>::Ptr);
     // bool filterBboxByArea();//以后有时间再改进
+
+    LShapedFIT lshape_fitter;
+
     ros::NodeHandle nh_, nh_local_;
     message_filters::Subscriber<sensor_msgs::Image> image_sub_;
     message_filters::Subscriber<sensor_msgs::PointCloud2> lidar_sub_;

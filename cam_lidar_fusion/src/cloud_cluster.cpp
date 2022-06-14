@@ -58,7 +58,7 @@ void CloudCluster::callback(
     const sensor_msgs::PointCloud2::ConstPtr& cropped_cloud,
     const yolo_ros::BoundingBoxes::ConstPtr& bd_boxes)
 {
-    cout << "jump into callback" << endl;
+    // cout << "jump into callback" << endl;
     this->cloud_heander_ = cropped_cloud->header;
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in(
         new pcl::PointCloud<pcl::PointXYZ>);
@@ -150,7 +150,7 @@ void CloudCluster::callback(
     }
     if (not obj_vec.empty())
     {
-        cout << "totally clustered " << obj_vec.size() << " objects" << endl;
+        // cout << "totally clustered " << obj_vec.size() << " objects" << endl;
         this->drawCube(obj_vec);
     }
 
@@ -214,74 +214,103 @@ bool CloudCluster::kd_cluster(pcl::PointCloud<pcl::PointXYZ>::Ptr in_pc,
             tmp_cloud_ptr->push_back(p);
         }
         iou_vec[i] = judgeScore(tmp_cloud_ptr, bbox_, in_pc->points.size());
-        cout << "the iou_score of the " << i << "th cluster is: " << iou_vec[i]
-             << endl;
+        // cout << "the iou_score of the " << i << "th cluster is: " <<
+        // iou_vec[i]
+        //      << endl;
     }
     // select the cluster which has the most points
     auto value_iter = max_element(iou_vec.begin(), iou_vec.end());
     int index = distance(iou_vec.begin(), value_iter);
-
+    // push the cluster cloud into the vector to make l shape fitter
+    vector<cv::Point2f> cloud_to_fit;
     for (auto pit = local_indices[index].indices.begin();
          pit != local_indices[index].indices.end(); ++pit)
     {
-        pcl::PointXYZ p;
-        p.x = in_pc->points[*pit].x;
-        p.y = in_pc->points[*pit].y;
-        p.z = in_pc->points[*pit].z;
+        cv::Point2f tmp_point(in_pc->points[*pit].x, in_pc->points[*pit].y);
+        cloud_to_fit.push_back(tmp_point);
+        // pcl::PointXYZ p;
+        // p.x = in_pc->points[*pit].x;
+        // p.y = in_pc->points[*pit].y;
+        // p.z = in_pc->points[*pit].z;
 
-        obj_info_.centroid_.x += p.x;
-        obj_info_.centroid_.y += p.y;
-        obj_info_.centroid_.z += p.z;
+        // obj_info_.centroid_.x += p.x;
+        // obj_info_.centroid_.y += p.y;
+        // obj_info_.centroid_.z += p.z;
 
-        if (p.x < min_x)
-            min_x = p.x;
-        if (p.y < min_y)
-            min_y = p.y;
-        if (p.z < min_z)
-            min_z = p.z;
-        if (p.x > max_x)
-            max_x = p.x;
-        if (p.y > max_y)
-            max_y = p.y;
-        if (p.z > max_z)
-            max_z = p.z;
+        // if (p.x < min_x)
+        //     min_x = p.x;
+        // if (p.y < min_y)
+        //     min_y = p.y;
+        // if (p.z < min_z)
+        //     min_z = p.z;
+        // if (p.x > max_x)
+        //     max_x = p.x;
+        // if (p.y > max_y)
+        //     max_y = p.y;
+        // if (p.z > max_z)
+        //     max_z = p.z;
     }
-    // min, max points
-    obj_info_.min_point_.x = min_x;
-    obj_info_.min_point_.y = min_y;
-    obj_info_.min_point_.z = min_z;
+    obj_info_.rr = lshape_fitter.FitBox(&cloud_to_fit);
+    obj_info_.vertices = lshape_fitter.getRectVertex();
 
-    obj_info_.max_point_.x = max_x;
-    obj_info_.max_point_.y = max_y;
-    obj_info_.max_point_.z = max_z;
-    // calculate centroid, average
-    if (local_indices[0].indices.size() > 0)  // 求出点云簇形心
+    for (int i = 0; i < obj_info_.vertices.size(); i++)
     {
-        obj_info_.centroid_.x /= local_indices[0].indices.size();
-        obj_info_.centroid_.y /= local_indices[0].indices.size();
-        obj_info_.centroid_.z /= local_indices[0].indices.size();
+        obj_info_.centroid_.x += obj_info_.vertices[i].x;
+        obj_info_.centroid_.y += obj_info_.vertices[i].y;
     }
-    //计算点云簇的长宽高
-    double length_ = obj_info_.max_point_.x - obj_info_.min_point_.x;
-    double width_ = obj_info_.max_point_.y - obj_info_.min_point_.y;
-    double height_ = obj_info_.max_point_.z - obj_info_.min_point_.z;
-    // cout << "the target's length and width and height are: " << length_ << "
-    // "
-    //      << width_ << " " << height_ << endl;
+    tf::Quaternion q;
+    q = tf::createQuaternionFromYaw(double(obj_info_.rr.angle * M_PI / 180));
+    obj_info_.centroid_.x /= obj_info_.vertices.size();
+    obj_info_.centroid_.y /= obj_info_.vertices.size();
+    obj_info_.centroid_.z = -1.216 + 0.75;
     obj_info_.bounding_box_.header = cloud_heander_;
-    obj_info_.bounding_box_.pose.position.x =
-        obj_info_.min_point_.x + length_ / 2;
-    obj_info_.bounding_box_.pose.position.y =
-        obj_info_.min_point_.y + width_ / 2;
-    obj_info_.bounding_box_.pose.position.z =
-        obj_info_.min_point_.z + height_ / 2;
+    obj_info_.bounding_box_.pose.position.x = obj_info_.centroid_.x;
+    obj_info_.bounding_box_.pose.position.y = obj_info_.centroid_.y;
+    obj_info_.bounding_box_.pose.position.z = obj_info_.centroid_.z;
+    obj_info_.bounding_box_.dimensions.x = obj_info_.rr.size.width;
+    obj_info_.bounding_box_.dimensions.y = obj_info_.rr.size.height;
+    obj_info_.bounding_box_.dimensions.z = 1.5;
+    obj_info_.bounding_box_.pose.orientation.w = double(q.w());
+    obj_info_.bounding_box_.pose.orientation.x = double(q.x());
+    obj_info_.bounding_box_.pose.orientation.y = double(q.y());
+    obj_info_.bounding_box_.pose.orientation.z = double(q.z());
+    // min, max points
+    // obj_info_.min_point_.x = min_x;
+    // obj_info_.min_point_.y = min_y;
+    // obj_info_.min_point_.z = min_z;
 
-    obj_info_.bounding_box_.dimensions.x =
-        ((length_ < 0) ? -1 * length_ : length_);
-    obj_info_.bounding_box_.dimensions.y =
-        ((width_ < 0) ? -1 * width_ : width_);
-    obj_info_.bounding_box_.dimensions.z =
-        ((height_ < 0) ? -1 * height_ : height_);
+    // obj_info_.max_point_.x = max_x;
+    // obj_info_.max_point_.y = max_y;
+    // obj_info_.max_point_.z = max_z;
+    // calculate centroid, average
+    // if (local_indices[0].indices.size() > 0)  // 求出点云簇形心
+    // {
+    //     obj_info_.centroid_.x /= local_indices[0].indices.size();
+    //     obj_info_.centroid_.y /= local_indices[0].indices.size();
+    //     obj_info_.centroid_.z /= local_indices[0].indices.size();
+    // }
+    //计算点云簇的长宽高
+    // double length_ = obj_info_.max_point_.x - obj_info_.min_point_.x;
+    // double width_ = obj_info_.max_point_.y - obj_info_.min_point_.y;
+    // double height_ = obj_info_.max_point_.z - obj_info_.min_point_.z;
+    // // cout << "the target's length and width and height are: " << length_ <<
+    // "
+    // // "
+    // //      << width_ << " " << height_ << endl;
+    // obj_info_.bounding_box_.header = cloud_heander_;
+    // obj_info_.bounding_box_.pose.position.x =
+    //     obj_info_.min_point_.x + length_ / 2;
+    // obj_info_.bounding_box_.pose.position.y =
+    //     obj_info_.min_point_.y + width_ / 2;
+    // obj_info_.bounding_box_.pose.position.z =
+    //     obj_info_.min_point_.z + height_ / 2;
+
+    // obj_info_.bounding_box_.dimensions.x =
+    //     ((length_ < 0) ? -1 * length_ : length_);
+    // obj_info_.bounding_box_.dimensions.y =
+    //     ((width_ < 0) ? -1 * width_ : width_);
+    // obj_info_.bounding_box_.dimensions.z =
+    //     ((height_ < 0) ? -1 * height_ : height_);
     return true;
 }
 //发送聚类得到的3Dboundingbox

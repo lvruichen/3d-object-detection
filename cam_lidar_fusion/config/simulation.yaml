@@ -4,10 +4,10 @@ cam_intrinsic:
      0.0, 0.0, 1.0]
 velo_to_cam:
     [ 0, -1, 0, 0,
-      0, 0, -1, -0.1,
-      1, 0, 0, -0.4,
+      0, 0, -1, -0.678,
+      1, 0, 0, -0.443,
       0, 0, 0, 1]
-image_topic: "/realsense/image_raw"
+image_topic: "/usb_cam_front/image_raw"
 lidar_topic: "/point_no_ground"
 bbox_topic: "/bounding_boxes"
 w1: 10

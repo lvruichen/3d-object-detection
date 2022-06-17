@@ -7,11 +7,11 @@
         <param name="topic_str" value="/lidar_points"/>
     </node> 
 
-    <!-- <include file="$(find yolo_ros)/launch/detect.launch"/> -->
+    <include file="$(find yolo_ros)/launch/detect.launch"/>
     
     <!-- <arg name="config_file" default="$(find cam_lidar_fusion)/config/cloud_cluster.yaml"/> -->
     <arg name="config_file" default="$(find cam_lidar_fusion)/config/simulation.yaml"/>
     <rosparam command="load" file="$(arg config_file)"/>
     <node pkg="cam_lidar_fusion" type="cloud_cluster" name="cloud_cluster" output="screen"/> 
-    <!-- <node pkg="rviz" type="rviz" name="rviz" args="-d $(find cam_lidar_fusion)/config/cluster.rviz"/> -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find cam_lidar_fusion)/config/cluster.rviz"/>
 </launch>

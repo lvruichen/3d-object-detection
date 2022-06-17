@@ -42,9 +42,9 @@ double getDistance(cv::Point3d pointO, cv::Point3d pointA)
 
 {
     double distance;
-
-    distance = powf((pointO.x - pointA.x), 2) + powf((pointO.y - pointA.y), 2) +
-               powf((pointO.z - pointA.z), 2);
+    pointO.x -= 0.258;
+    pointO.z -= 1.216;
+    distance = powf((pointO.x - pointA.x), 2) + powf((pointO.y - pointA.y), 2);
 
     distance = sqrtf(distance);
 
@@ -93,7 +93,7 @@ void TestDetection::call_back(
             {
                 double distance =
                     getDistance(detect_centers[i], true_centers[j]);
-                if (distance < 2.5)
+                if (distance < 2)
                     success++;
             }
         }

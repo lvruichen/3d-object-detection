@@ -67,6 +67,7 @@ add_executable(image_publisher utils/image_publisher.cpp)
 target_link_libraries(image_publisher
   ${catkin_LIBRARIES}
   ${OpenCV_LIBRARIES})
+
 add_executable(lidar_publisher utils/lidar_publisher.cpp)
 target_link_libraries(lidar_publisher
   ${catkin_LIBRARIES}
@@ -80,6 +81,12 @@ target_link_libraries(ground_filter
 
 add_library(lshaped_fitting src/lshaped_fitting.cpp)
 target_link_libraries(lshaped_fitting ${OpenCV_LIBRARIES})
+
+add_library(vis_bbox src/vis_bbox.cpp)
+target_link_libraries(vis_bbox
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+  ${PCL_LIBRARIES})
 
 add_executable(cloud_cluster src/cloud_cluster.cpp)
 target_link_libraries(cloud_cluster

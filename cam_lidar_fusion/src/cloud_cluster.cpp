@@ -131,10 +131,10 @@ void CloudCluster::callback(
     cv::waitKey(1);
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_in_lidar(
         new pcl::PointCloud<pcl::PointXYZ>);
-    Detected_object obj_info;
     vector<Detected_object> obj_vec;
     for (int i = 0; i < cloud_vector.size(); i++)
     {
+        Detected_object obj_info;
         // cout << "there are " << cloud_vector[i]->size() << " points in
         // object" << i << endl;
         // transform the point in lidar frame
@@ -313,6 +313,7 @@ bool CloudCluster::kd_cluster(pcl::PointCloud<pcl::PointXYZ>::Ptr in_pc,
     //     ((height_ < 0) ? -1 * height_ : height_);
     return true;
 }
+
 //发送聚类得到的3Dboundingbox
 void CloudCluster::drawCube(vector<Detected_object>& obj_vec_)
 {

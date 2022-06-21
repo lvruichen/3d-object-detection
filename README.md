@@ -9,7 +9,7 @@ this is a reproduction of my senior's graduation project. It main use yolo to de
 - [x] cloud identification
 - [x] cloud clustering 
 - [x] the scoring method(distance number iou)
-- [ ] L shape fitter
+- [x] L shape fitter
 
 ## Environments:
 - PyTorch 1.10
@@ -40,6 +40,9 @@ Since we have detected the car or person using yolo, and then we project the cor
 ## Get the object cloud in rviz
 We do this supposing we have already known the cameram intrinsis and extrinsic and you can change it in the ```cam_lidar_fusion/config/cloud_cluster.yaml ```
 ![](./resource/cloud_project.png) 
+## L-shape-fitter
+We want to get the yaw angle of the cluster of a car, so i naively use a minimum rectangle to encircle the clouds projected to xy plane, thus i get the yaw angle.
+![](./resource/l_shape_fitter.png)
 ## Final results
 I just take one frame of kitti dataset for example
 ![](./resource/final.png)
@@ -50,4 +53,6 @@ I build a simple dynamic world to check my algorithm
 ![](./resource/world.gif)
 the detect results are as followed, we can see that this algorithm distingguish the front view and background validly.
 ![](./resource/rviz2.gif)
+Here is the detection precision in gazebo world, hopefully, the precision is 80% in average.
+![](./resource/detect.png)
 Many thanks to my friend Ouyang and my senior Caoming for their code.
